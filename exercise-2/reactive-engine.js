@@ -1,76 +1,101 @@
+
 let stateStore = [];
 let stateCursor = 0;
-
-function resetCursor() {
-stateCursor = 0;
-}
 
 let rootComponent = null;
 let rootElement = null;
 
-function renderApp() {
-if (!rootComponent || !rootElement) {
-return;
+function resetCursor() {
+  stateCursor = 0;
 }
 
-resetCursor();
+function renderApp() {
+  if (!rootComponent || !rootElement) {
+    return;
+  }
 
-const newVNode = rootComponent();
-rootElement.replaceChildren(renderToDOM(newVNode));
+  resetCursor();
+
+  const newVNode = rootComponent();
+  const renderedElement = window.MiniReact.renderToDOM(newVNode);
+
+  rootElement.replaceChildren(renderedElement);
 }
 
 function useState(initialValue) {
-const currentCursor = stateCursor;
+  const currentCursor = stateCursor;
 
-if (stateStore[currentCursor] === undefined) {
-stateStore[currentCursor] = initialValue;
-}
+  if (!(currentCursor in stateStore)) {
+    stateStore[currentCursor] = initialValue;
+  }
 
-const setState = (newValue) => {
-const value =
-typeof newValue === "function"
-? newValue(stateStore[currentCursor])
-: newValue;
+  const setState = (newValue) => {
+    const previousValue = stateStore[currentCursor];
 
-```
-stateStore[currentCursor] = value;
-renderApp();
-```
+    stateStore[currentCursor] =
+      typeof newValue === "function"
+        ? newValue(previousValue)
+        : newValue;
 
-};
+    renderApp();
+  };
 
-stateCursor += 1;
+  stateCursor++;
 
-return [stateStore[currentCursor - 1], setState];
+  return [stateStore[currentCursor], setState];
 }
 
 function mount(component, element) {
-rootComponent = component;
-rootElement = element;
-renderApp();
+  rootComponent = component;
+  rootElement = element;
+
+  attachEventDelegation(rootElement);
+  renderApp();
 }
+
 function attachEventDelegation(root) {
-if (!root || root.dataset.delegationAttached === "true") {
-return;
-}
+  if (!root || root.dataset.delegationAttached === "true") {
+    return;
+  }
 
-root.dataset.delegationAttached = "true";
+  root.dataset.delegationAttached = "true";
 
-root.addEventListener("click", (event) => {
-const button = event.target.closest("button[data-action]");
+  root.addEventListener("click", (event) => {
+    const target = event.target;
 
-```
-if (!button || !root.contains(button)) {
-  return;
-}
+    if (!(target instanceof Element)) {
+      return;
+    }
 
-const action = button.dataset.action;
-const taskId = button.dataset.taskId;
+    const button = target.closest("button[data-action]");
 
-if (typeof window.handleAction === "function") {
-  window.handleAction(action, taskId);
-}
-```
+    if (!button || !root.contains(button)) {
+      return;
+    }
 
-});
+    const action = button.dataset.action;
+    const taskId = button.dataset.taskId;
+
+    if (typeof window.handleAction === "function") {
+      window.handleAction(action, taskId);
+    }
+  });
+
+  root.addEventListener("change", (event) => {
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const select = target.closest("select[data-action]");
+
+    if (!select || !root.contains(select)) {
+      return;
+    }
+
+    if (typeof window.handleAction === "function") {
+      window.handleAction(select.dataset.action, select.value);
+    }
+  });
 }
