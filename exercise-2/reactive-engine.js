@@ -49,3 +49,28 @@ rootComponent = component;
 rootElement = element;
 renderApp();
 }
+function attachEventDelegation(root) {
+if (!root || root.dataset.delegationAttached === "true") {
+return;
+}
+
+root.dataset.delegationAttached = "true";
+
+root.addEventListener("click", (event) => {
+const button = event.target.closest("button[data-action]");
+
+```
+if (!button || !root.contains(button)) {
+  return;
+}
+
+const action = button.dataset.action;
+const taskId = button.dataset.taskId;
+
+if (typeof window.handleAction === "function") {
+  window.handleAction(action, taskId);
+}
+```
+
+});
+}
